@@ -1,0 +1,130 @@
+{
+  "common": {
+    "login": "Login",
+    "register": "Sign Up",
+    "logout": "Logout",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "search": "Search",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error"
+  },
+  "nav": {
+    "home": "Home",
+    "events": "Events",
+    "myProfile": "My Profile",
+    "admin": "Admin Panel",
+    "provider": "Provider Panel"
+  },
+  "auth": {
+    "loginTitle": "Login",
+    "registerTitle": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Full Name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "registerHere": "Sign up here",
+    "loginHere": "Login here",
+    "loginSuccess": "Successfully logged in",
+    "registerSuccess": "Account created successfully",
+    "loginError": "Error logging in",
+    "registerError": "Error creating account",
+    "passwordMismatch": "Passwords do not match",
+    "invalidEmail": "Invalid email",
+    "requiredField": "This field is required"
+  },
+  "calendar": {
+    "title": "Event Calendar",
+    "today": "Today",
+    "noEvents": "No events scheduled",
+    "viewDetails": "View Details",
+    "filterByType": "Filter by Type",
+    "allTypes": "All Types"
+  },
+  "event": {
+    "details": "Event Details",
+    "date": "Date",
+    "time": "Time",
+    "location": "Location",
+    "availableSeats": "Available Seats",
+    "provider": "Organizer",
+    "status": "Status",
+    "reserveSeat": "Reserve Seat",
+    "cancelRegistration": "Cancel Registration",
+    "registrationSuccess": "Seat reserved successfully!",
+    "cancellationSuccess": "Registration cancelled successfully",
+    "registrationError": "Error reserving seat",
+    "noSeatsAvailable": "No seats available",
+    "maxSeatsReached": "You've reached the maximum of 4 seats per event",
+    "notOpenYet": "This event is not yet open for registration.",
+    "loginToRegister": "Login or register to book seats",
+    "onlyUsersCanRegister": "Only regular users can register for events."
+  },
+  "eventStatus": {
+    "PLANNED": "Planned",
+    "OPEN": "Open",
+    "CONFIRMED": "Confirmed"
+  },
+  "role": {
+    "user": "User",
+    "provider": "Provider",
+    "admin": "Administrator"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "statistics": "Statistics",
+    "events": "Events",
+    "registrations": "Registrations",
+    "users": "Users",
+    "totalEvents": "Total Events",
+    "totalUsers": "Total Users",
+    "totalRegistrations": "Total Registrations",
+    "upcomingEvents": "Upcoming Events",
+    "addEvent": "Add Event",
+    "editEvent": "Edit Event",
+    "deleteEvent": "Delete Event",
+    "confirmDelete": "Are you sure you want to delete this event?",
+    "promoteToProvider": "Promote to Provider",
+    "demoteToUser": "Demote to User",
+    "confirmPromotion": "Are you sure you want to promote this user to Provider?",
+    "confirmDemotion": "Are you sure you want to demote this provider to User?",
+    "changeStatus": "Change Status",
+    "statusUpdated": "Status updated successfully"
+  },
+  "provider": {
+    "title": "Provider Panel",
+    "myEvents": "My Events",
+    "createEvent": "Create Event",
+    "eventCreated": "Event created successfully",
+    "eventUpdated": "Event updated successfully",
+    "noEvents": "You haven't created any events yet",
+    "cannotRegister": "Providers cannot register for events"
+  },
+  "profile": {
+    "title": "My Profile",
+    "myRegistrations": "My Registrations",
+    "noRegistrations": "You have no registrations yet",
+    "updateProfile": "Update Profile",
+    "profileUpdated": "Profile updated successfully"
+  },
+  "form": {
+    "titleEs": "Title (Spanish)",
+    "titleEn": "Title (English)",
+    "descriptionEs": "Description (Spanish)",
+    "descriptionEn": "Description (English)",
+    "date": "Date",
+    "time": "Time",
+    "location": "Location",
+    "maxSeats": "Maximum Seats",
+    "status": "Status",
+    "selectStatus": "Select Status",
+    "imageUrl": "Image URL (Optional)"
+  }
+}
