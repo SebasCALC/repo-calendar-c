@@ -1,15 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DateCell } from './DateCell';
-import { getEvents } from '@/lib/mockData';
+import { getEvents } from '@/lib/supabaseQueries';
+import { Event } from '@/types/event';
+import { toast } from 'sonner';
 
 export const Calendar = () => {
   const { t, language } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState<Event[]>([]);
 
-  const events = getEvents();
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await getEvents();
+        setEvents(data);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        toast.error(t('calendar.errorLoading') || 'Error loading events');
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const monthNames = language === 'es' 
     ? ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']

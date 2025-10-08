@@ -8,10 +8,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { getUserRegistrations } from '@/lib/registrations';
-import { getEventById } from '@/lib/mockData';
+import { getUserRegistrations, getEventById } from '@/lib/supabaseQueries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, MapPin, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface ProfileModalProps {
   open: boolean;
@@ -21,10 +21,23 @@ interface ProfileModalProps {
 export const ProfileModal = ({ open, onClose }: ProfileModalProps) => {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const [registrations, setRegistrations] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      if (user) {
+        try {
+          const data = await getUserRegistrations(user.id);
+          setRegistrations(data);
+        } catch (error) {
+          console.error('Error fetching registrations:', error);
+        }
+      }
+    };
+    fetchRegistrations();
+  }, [user]);
 
   if (!user) return null;
-
-  const registrations = getUserRegistrations(user.id);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -56,14 +69,14 @@ export const ProfileModal = ({ open, onClose }: ProfileModalProps) => {
             ) : (
               <div className="space-y-3">
                 {registrations.map((reg) => {
-                  const event = getEventById(reg.eventId);
+                  const event = reg.events;
                   if (!event) return null;
                   
                   return (
                     <Card key={reg.id}>
                       <CardContent className="pt-4">
                         <h4 className="font-semibold mb-2">
-                          {event.title[language]}
+                          {event.title_es} / {event.title_en}
                         </h4>
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <div className="flex items-center gap-2">
@@ -76,7 +89,7 @@ export const ProfileModal = ({ open, onClose }: ProfileModalProps) => {
                           </div>
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
-                            {reg.seatsBooked} {t('event.availableSeats')}
+                            {reg.seats_booked} {t('event.availableSeats')}
                           </div>
                         </div>
                       </CardContent>

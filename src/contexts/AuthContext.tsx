@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User as AuthUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 
 interface AuthContextType {
@@ -16,68 +18,127 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUserRole = async (userId: string): Promise<UserRole> => {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    if (error || !data || data.length === 0) return UserRole.USER;
+
+    // Check for admin first, then provider
+    const roles = data.map(r => r.role);
+    if (roles.includes('admin')) return UserRole.ADMIN;
+    if (roles.includes('provider')) return UserRole.PROVIDER;
+    return UserRole.USER;
+  };
+
+  const fetchUserProfile = async (authUser: AuthUser) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    const role = await fetchUserRole(authUser.id);
+
+    const userData: User = {
+      id: authUser.id,
+      email: authUser.email!,
+      name: profile?.name || 'User',
+      role,
+      createdAt: authUser.created_at
+    };
+
+    setUser(userData);
+  };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        if (session?.user) {
+          // Defer profile fetching to avoid blocking
+          setTimeout(() => {
+            fetchUserProfile(session.user);
+          }, 0);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchUserProfile(session.user);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (!foundUser) {
-      throw new Error('Invalid credentials');
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    const { password: _, ...userWithoutPassword } = foundUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    if (error) throw error;
+    
+    if (data.user) {
+      await fetchUserProfile(data.user);
+    }
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const redirectUrl = `${window.location.origin}/`;
     
-    if (users.find((u: User) => u.email === email)) {
-      throw new Error('Email already exists');
-    }
-
-    const newUser: User & { password: string } = {
-      id: crypto.randomUUID(),
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      name,
-      role: UserRole.USER,
-      createdAt: new Date().toISOString(),
-    };
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name
+        }
+      }
+    });
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    if (error) throw error;
+    
+    if (data.user) {
+      await fetchUserProfile(data.user);
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('currentUser');
+    setSession(null);
   };
 
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
+
+    if (updates.name) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ name: updates.name })
+        .eq('id', user.id);
+
+      if (error) throw error;
+    }
 
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map((u: User) => 
-      u.id === user.id ? { ...u, ...updates } : u
-    );
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
   };
 
   return (

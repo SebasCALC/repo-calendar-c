@@ -11,10 +11,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Users, User as UserIcon } from 'lucide-react';
-import { registerForEvent, cancelRegistration, getUserRegistrations } from '@/lib/registrations';
+import { registerForEvent as dbRegisterForEvent, cancelRegistration as dbCancelRegistration, getUserRegistrations } from '@/lib/supabaseQueries';
 import { UserRole } from '@/types/user';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface EventModalProps {
   event: Event;
@@ -26,10 +26,21 @@ export const EventModal = ({ event, open, onClose }: EventModalProps) => {
   const { t, language } = useLanguage();
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
-  const userRegistrations = user ? getUserRegistrations(user.id) : [];
-  const isRegistered = userRegistrations.some((r) => r.eventId === event.id);
-  const userRegistration = userRegistrations.find((r) => r.eventId === event.id);
+  useEffect(() => {
+    const checkRegistration = async () => {
+      if (user) {
+        try {
+          const registrations = await getUserRegistrations(user.id);
+          setIsRegistered(registrations.some(r => r.event_id === event.id));
+        } catch (error) {
+          console.error('Error checking registration:', error);
+        }
+      }
+    };
+    checkRegistration();
+  }, [user, event.id]);
 
   const getStatusBadge = (status: EventStatus) => {
     const colors = {
@@ -48,35 +59,54 @@ export const EventModal = ({ event, open, onClose }: EventModalProps) => {
   const handleRegister = async () => {
     if (!user) return;
 
+    if (user.role !== UserRole.USER) {
+      toast.error(t('event.onlyUsersCanRegister') || 'Only users with USER role can register for events');
+      return;
+    }
+
+    if (event.status !== EventStatus.OPEN) {
+      toast.error(t('event.notOpenYet') || 'This event is not open for registration');
+      return;
+    }
+
+    if (event.availableSeats < 1) {
+      toast.error(t('event.noSeatsAvailable') || 'No seats available');
+      return;
+    }
+
     setLoading(true);
-    const result = registerForEvent(event.id, user.id, user.name, user.email, user.role, 1);
-    
-    if (result.success) {
+    try {
+      await dbRegisterForEvent(event.id, user.id, user.name, user.email, 1);
       toast.success(t('event.registrationSuccess'));
+      setIsRegistered(true);
       setTimeout(() => {
         window.location.reload();
       }, 1000);
-    } else {
-      toast.error(result.message);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || t('event.registrationError'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleCancel = async () => {
     if (!user) return;
 
     setLoading(true);
-    const result = cancelRegistration(event.id, user.id);
-    
-    if (result.success) {
+    try {
+      await dbCancelRegistration(event.id, user.id);
       toast.success(t('event.cancellationSuccess'));
+      setIsRegistered(false);
       setTimeout(() => {
         window.location.reload();
       }, 1000);
-    } else {
-      toast.error(result.message);
+    } catch (error: any) {
+      console.error('Cancellation error:', error);
+      toast.error(error.message || t('event.cancellationError'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const canShowRegisterButton = () => {
@@ -173,10 +203,10 @@ export const EventModal = ({ event, open, onClose }: EventModalProps) => {
             </div>
           )}
 
-          {isRegistered && userRegistration && (
+          {isRegistered && (
             <div className="bg-primary/10 p-4 rounded-lg">
               <p className="text-sm font-medium">
-                {t('event.registrationSuccess')} - {userRegistration.seatsBooked} {t('event.availableSeats')}
+                {t('event.registrationSuccess')} - 1 {t('event.availableSeats')}
               </p>
             </div>
           )}
