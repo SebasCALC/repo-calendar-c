@@ -14,16 +14,162 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      event_registrations: {
+        Row: {
+          event_id: string
+          id: string
+          registered_at: string | null
+          seats_booked: number
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          registered_at?: string | null
+          seats_booked: number
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          registered_at?: string | null
+          seats_booked?: number
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          available_seats: number
+          created_at: string | null
+          date: string
+          description_en: string
+          description_es: string
+          id: string
+          image_url: string | null
+          location: string
+          max_seats: number
+          provider_id: string
+          provider_name: string
+          status: Database["public"]["Enums"]["event_status"]
+          time: string
+          title_en: string
+          title_es: string
+          updated_at: string | null
+        }
+        Insert: {
+          available_seats: number
+          created_at?: string | null
+          date: string
+          description_en: string
+          description_es: string
+          id?: string
+          image_url?: string | null
+          location: string
+          max_seats: number
+          provider_id: string
+          provider_name: string
+          status?: Database["public"]["Enums"]["event_status"]
+          time: string
+          title_en: string
+          title_es: string
+          updated_at?: string | null
+        }
+        Update: {
+          available_seats?: number
+          created_at?: string | null
+          date?: string
+          description_en?: string
+          description_es?: string
+          id?: string
+          image_url?: string | null
+          location?: string
+          max_seats?: number
+          provider_id?: string
+          provider_name?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          time?: string
+          title_en?: string
+          title_es?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "provider" | "admin"
+      event_status: "planned" | "open" | "confirmed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +296,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "provider", "admin"],
+      event_status: ["planned", "open", "confirmed"],
+    },
   },
 } as const
