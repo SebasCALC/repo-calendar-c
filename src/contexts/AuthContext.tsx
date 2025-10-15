@@ -94,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
     
     if (data.user) {
+      await supabase.rpc('ensure_user_role');
       await fetchUserProfile(data.user);
     }
   };
@@ -115,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
     
     if (data.user) {
+      await supabase.rpc('ensure_user_role');
       await fetchUserProfile(data.user);
     }
   };
