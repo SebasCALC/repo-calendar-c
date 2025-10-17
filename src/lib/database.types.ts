@@ -1,87 +1,101 @@
 export interface Database {
   public: {
     Tables: {
-      events: {
+      profiles: {
         Row: {
           id: string;
-          title: string;
-          description: string;
-          start_time: string;
-          end_time: string;
-          duration: number;
-          difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-          seats_available: number;
-          total_seats: number;
-          status: 'available' | 'fully-booked' | 'cancelled';
+          name: string;
+          email: string;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          title: string;
-          description: string;
-          start_time: string;
-          end_time: string;
-          duration: number;
-          difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-          seats_available: number;
-          total_seats: number;
-          status?: 'available' | 'fully-booked' | 'cancelled';
+          id: string;
+          name: string;
+          email: string;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          title?: string;
-          description?: string;
-          start_time?: string;
-          end_time?: string;
-          duration?: number;
-          difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
-          seats_available?: number;
-          total_seats?: number;
-          status?: 'available' | 'fully-booked' | 'cancelled';
+          name?: string;
+          email?: string;
           created_at?: string;
           updated_at?: string;
         };
       };
-      user_profiles: {
+      user_roles: {
         Row: {
           id: string;
-          username: string;
-          full_name: string;
-          email: string;
-          phone: string;
-          age: number;
-          country_of_residence: string;
-          city_town_name: string;
-          is_admin: boolean;
+          user_id: string;
+          role: 'user' | 'provider' | 'admin';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role?: 'user' | 'provider' | 'admin';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: 'user' | 'provider' | 'admin';
+          created_at?: string;
+        };
+      };
+      events: {
+        Row: {
+          id: string;
+          title_es: string;
+          title_en: string;
+          description_es: string;
+          description_en: string;
+          date: string;
+          time: string;
+          location: string;
+          max_seats: number;
+          available_seats: number;
+          status: 'planned' | 'open' | 'confirmed' | 'canceled' | 'successful';
+          provider_id: string;
+          provider_name: string;
+          image_url: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id: string;
-          username: string;
-          full_name: string;
-          email: string;
-          phone: string;
-          age: number;
-          country_of_residence: string;
-          city_town_name: string;
-          is_admin?: boolean;
+          id?: string;
+          title_es: string;
+          title_en: string;
+          description_es: string;
+          description_en: string;
+          date: string;
+          time: string;
+          location: string;
+          max_seats: number;
+          available_seats: number;
+          status?: 'planned' | 'open' | 'confirmed' | 'canceled' | 'successful';
+          provider_id: string;
+          provider_name: string;
+          image_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          username?: string;
-          full_name?: string;
-          email?: string;
-          phone?: string;
-          age?: number;
-          country_of_residence?: string;
-          city_town_name?: string;
-          is_admin?: boolean;
+          title_es?: string;
+          title_en?: string;
+          description_es?: string;
+          description_en?: string;
+          date?: string;
+          time?: string;
+          location?: string;
+          max_seats?: number;
+          available_seats?: number;
+          status?: 'planned' | 'open' | 'confirmed' | 'canceled' | 'successful';
+          provider_id?: string;
+          provider_name?: string;
+          image_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -89,26 +103,36 @@ export interface Database {
       event_registrations: {
         Row: {
           id: string;
-          user_id: string;
           event_id: string;
-          seats_requested: number;
-          registration_date: string;
+          user_id: string;
+          user_name: string;
+          user_email: string;
+          seats_booked: number;
+          registered_at: string;
         };
         Insert: {
           id?: string;
-          user_id: string;
           event_id: string;
-          seats_requested: number;
-          registration_date?: string;
+          user_id: string;
+          user_name: string;
+          user_email: string;
+          seats_booked: number;
+          registered_at?: string;
         };
         Update: {
           id?: string;
-          user_id?: string;
           event_id?: string;
-          seats_requested?: number;
-          registration_date?: string;
+          user_id?: string;
+          user_name?: string;
+          user_email?: string;
+          seats_booked?: number;
+          registered_at?: string;
         };
       };
+    };
+    Enums: {
+      app_role: 'user' | 'provider' | 'admin';
+      event_status: 'planned' | 'open' | 'confirmed' | 'canceled' | 'successful';
     };
   };
 }

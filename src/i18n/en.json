@@ -52,15 +52,20 @@
     "loginToRegister": "Please log in or register to book seats for this event",
     "seatsRequested": "Number of seats (max 4)",
     "registerForEvent": "Register for this event",
+    "location": "Location",
+    "maxSeats": "Maximum Seats",
+    "availableSeats": "Available Seats",
     "difficulties": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",
       "advanced": "Advanced"
     },
     "statuses": {
-      "available": "Available",
-      "fullyBooked": "Fully Booked",
-      "cancelled": "Cancelled"
+      "planned": "Planned",
+      "open": "Open for Registration",
+      "confirmed": "Confirmed",
+      "canceled": "Canceled",
+      "successful": "Completed Successfully"
     }
   },
   "auth": {

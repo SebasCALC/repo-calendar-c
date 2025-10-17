@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import { X, Plus, Calendar, Clock, Users, Award } from 'lucide-react';
+import { UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface AddEventModalProps {
+  currentUser: UserProfile;
   onClose: () => void;
   onEventAdded: () => void;
 }
 
-const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) => {
+const AddEventModal: React.FC<AddEventModalProps> = ({ currentUser, onClose, onEventAdded }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    start_time: '',
-    end_time: '',
-    difficulty: 'Beginner' as 'Beginner' | 'Intermediate' | 'Advanced',
-    total_seats: 10
+    title_es: '',
+    title_en: '',
+    description_es: '',
+    description_en: '',
+    date: '',
+    time: '',
+    location: '',
+    max_seats: 10
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,43 +34,46 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Event title is required';
+    if (!formData.title_es.trim()) {
+      newErrors.title_es = 'Spanish title is required';
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = 'Event description is required';
+    if (!formData.title_en.trim()) {
+      newErrors.title_en = 'English title is required';
     }
 
-    if (!formData.start_time) {
-      newErrors.start_time = 'Start time is required';
+    if (!formData.description_es.trim()) {
+      newErrors.description_es = 'Spanish description is required';
     }
 
-    if (!formData.end_time) {
-      newErrors.end_time = 'End time is required';
+    if (!formData.description_en.trim()) {
+      newErrors.description_en = 'English description is required';
     }
 
-    if (formData.start_time && formData.end_time) {
-      const startDate = new Date(formData.start_time);
-      const endDate = new Date(formData.end_time);
-      const now = new Date();
+    if (!formData.date) {
+      newErrors.date = 'Date is required';
+    }
 
-      if (startDate <= now) {
-        newErrors.start_time = 'Start time must be in the future';
+    if (!formData.time) {
+      newErrors.time = 'Time is required';
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = 'Location is required';
+    }
+
+    if (formData.date) {
+      const eventDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (eventDate < today) {
+        newErrors.date = 'Event date must be in the future';
       }
-
-      if (endDate <= startDate) {
-        newErrors.end_time = 'End time must be after start time';
-      }
-
-      const duration = calculateDuration(formData.start_time, formData.end_time);
-      if (duration < 15) {
-        newErrors.end_time = 'Event must be at least 15 minutes long';
-      }
     }
 
-    if (formData.total_seats < 1 || formData.total_seats > 1000) {
-      newErrors.total_seats = 'Total seats must be between 1 and 1000';
+    if (formData.max_seats < 1 || formData.max_seats > 1000) {
+      newErrors.max_seats = 'Maximum seats must be between 1 and 1000';
     }
 
     setErrors(newErrors);
@@ -83,20 +90,21 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) 
     setLoading(true);
     
     try {
-      const duration = calculateDuration(formData.start_time, formData.end_time);
-      
       const { error } = await supabase
         .from('events')
         .insert({
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          start_time: new Date(formData.start_time).toISOString(),
-          end_time: new Date(formData.end_time).toISOString(),
-          duration,
-          difficulty: formData.difficulty,
-          total_seats: formData.total_seats,
-          seats_available: formData.total_seats,
-          status: 'available'
+          title_es: formData.title_es.trim(),
+          title_en: formData.title_en.trim(),
+          description_es: formData.description_es.trim(),
+          description_en: formData.description_en.trim(),
+          date: formData.date,
+          time: formData.time,
+          location: formData.location.trim(),
+          max_seats: formData.max_seats,
+          available_seats: formData.max_seats,
+          status: 'planned',
+          provider_id: currentUser.id,
+          provider_name: currentUser.name
         });
 
       if (error) throw error;
@@ -119,7 +127,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) 
     }
   };
 
-  const duration = calculateDuration(formData.start_time, formData.end_time);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -148,39 +155,75 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) 
               </h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleChange('title', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.title 
-                      ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-300 focus:ring-blue-500'
-                  }`}
-                  placeholder="Enter event title"
-                />
-                {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Event Title *</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Spanish</label>
+                    <input
+                      type="text"
+                      value={formData.title_es}
+                      onChange={(e) => handleChange('title_es', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.title_es 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                      placeholder="Título del evento"
+                    />
+                    {errors.title_es && <p className="text-red-500 text-xs mt-1">{errors.title_es}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <input
+                      type="text"
+                      value={formData.title_en}
+                      onChange={(e) => handleChange('title_en', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.title_en 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                      placeholder="Event title"
+                    />
+                    {errors.title_en && <p className="text-red-500 text-xs mt-1">{errors.title_en}</p>}
+                  </div>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Description *
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.description 
-                      ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-300 focus:ring-blue-500'
-                  }`}
-                  placeholder="Describe the event, what participants can expect, requirements, etc."
-                />
-                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Event Description *</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Spanish</label>
+                    <textarea
+                      value={formData.description_es}
+                      onChange={(e) => handleChange('description_es', e.target.value)}
+                      rows={3}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.description_es 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                      placeholder="Descripción del evento..."
+                    />
+                    {errors.description_es && <p className="text-red-500 text-xs mt-1">{errors.description_es}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <textarea
+                      value={formData.description_en}
+                      onChange={(e) => handleChange('description_en', e.target.value)}
+                      rows={3}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.description_en 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                      placeholder="Event description..."
+                    />
+                    {errors.description_en && <p className="text-red-500 text-xs mt-1">{errors.description_en}</p>}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -191,93 +234,87 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) 
                 <span>Schedule</span>
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date & Time *
+                    Date *
                   </label>
                   <input
-                    type="datetime-local"
-                    value={formData.start_time}
-                    onChange={(e) => handleChange('start_time', e.target.value)}
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => handleChange('date', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      errors.start_time 
+                      errors.date 
                         ? 'border-red-500 focus:ring-red-500' 
                         : 'border-gray-300 focus:ring-blue-500'
                     }`}
                   />
-                  {errors.start_time && <p className="text-red-500 text-xs mt-1">{errors.start_time}</p>}
+                  {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date & Time *
+                    Time *
                   </label>
                   <input
-                    type="datetime-local"
-                    value={formData.end_time}
-                    onChange={(e) => handleChange('end_time', e.target.value)}
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => handleChange('time', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      errors.end_time 
+                      errors.time 
                         ? 'border-red-500 focus:ring-red-500' 
                         : 'border-gray-300 focus:ring-blue-500'
                     }`}
                   />
-                  {errors.end_time && <p className="text-red-500 text-xs mt-1">{errors.end_time}</p>}
+                  {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => handleChange('location', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      errors.location 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                    placeholder="Event location"
+                  />
+                  {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
                 </div>
               </div>
-
-              {duration > 0 && (
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <Clock className="h-4 w-4 inline mr-1" />
-                    Duration: {Math.floor(duration / 60)}h {duration % 60}m ({duration} minutes)
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Event Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
-                <Award className="h-5 w-5 text-blue-600" />
+                <Users className="h-5 w-5 text-blue-600" />
                 <span>Event Details</span>
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Difficulty Level *
-                  </label>
-                  <select
-                    value={formData.difficulty}
-                    onChange={(e) => handleChange('difficulty', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Total Seats *
+                    Maximum Seats *
                   </label>
                   <input
                     type="number"
-                    value={formData.total_seats}
-                    onChange={(e) => handleChange('total_seats', parseInt(e.target.value) || 0)}
+                    value={formData.max_seats}
+                    onChange={(e) => handleChange('max_seats', parseInt(e.target.value) || 0)}
                     min="1"
                     max="1000"
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      errors.total_seats 
+                      errors.max_seats 
                         ? 'border-red-500 focus:ring-red-500' 
                         : 'border-gray-300 focus:ring-blue-500'
                     }`}
                     placeholder="Number of available seats"
                   />
-                  {errors.total_seats && <p className="text-red-500 text-xs mt-1">{errors.total_seats}</p>}
+                  {errors.max_seats && <p className="text-red-500 text-xs mt-1">{errors.max_seats}</p>}
                 </div>
               </div>
             </div>
@@ -288,24 +325,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, onEventAdded }) 
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4" />
-                  <span>{formData.total_seats} seats available</span>
+                  <span>{formData.max_seats} seats available</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Award className="h-4 w-4" />
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    formData.difficulty === 'Beginner' ? 'bg-green-100 text-green-800' :
-                    formData.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {formData.difficulty}
-                  </span>
+                  <Calendar className="h-4 w-4" />
+                  <span>Status: Planned (will be visible to all users)</span>
                 </div>
-                {duration > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4" />
-                    <span>{duration} minutes duration</span>
-                  </div>
-                )}
               </div>
             </div>
 

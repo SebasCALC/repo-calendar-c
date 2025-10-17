@@ -1,39 +1,48 @@
-export interface Event {
+export type AppRole = 'user' | 'provider' | 'admin';
+
+export type EventStatus = 'planned' | 'open' | 'confirmed' | 'canceled' | 'successful';
+
+export interface UserProfile {
   id: string;
-  title: string;
-  description: string;
-  start_time: string;
-  end_time: string;
-  duration: number; // in minutes
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  seats_available: number;
-  total_seats: number;
-  status: 'available' | 'fully-booked' | 'cancelled';
+  name: string;
+  email: string;
+  role: AppRole;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface UserProfile {
+export interface Event {
   id: string;
-  username: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  age: number;
-  country_of_residence: string;
-  city_town_name: string;
-  is_admin: boolean;
+  title_es: string;
+  title_en: string;
+  description_es: string;
+  description_en: string;
+  date: string;
+  time: string;
+  location: string;
+  max_seats: number;
+  available_seats: number;
+  status: EventStatus;
+  provider_id: string;
+  provider_name: string;
+  image_url?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface EventRegistration {
   id: string;
-  user_id: string;
   event_id: string;
-  seats_requested: number;
-  registration_date: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  seats_booked: number;
+  registered_at: string;
 }
 
-export interface BookingData {
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: AppRole;
+  created_at: string;
 }

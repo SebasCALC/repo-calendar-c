@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Users, Award } from 'lucide-react';
-import { Event } from '../types';
+import { Event, EventStatus } from '../types';
 import { useTranslation } from '../i18n/i18n';
 
 interface CalendarViewProps {
@@ -52,21 +52,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events, onEventClick }) => 
 
   const getEventsForDay = (date: Date) => {
     return monthEvents.filter(event => {
-      const eventStartDate = new Date(event.start_time);
-      const eventEndDate = new Date(event.end_time);
-      
-      // Set time to start of day for accurate date comparison
-      const startOfDay = new Date(eventStartDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(eventEndDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      
+      const eventDate = new Date(event.date);
       const currentDay = new Date(date);
-      currentDay.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-      
-      // Check if the current day falls within the event's date range
-      return currentDay >= startOfDay && currentDay <= endOfDay;
+      return eventDate.toDateString() === currentDay.toDateString();
     });
   };
 
@@ -76,20 +64,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events, onEventClick }) => 
     setCurrentDate(newDate);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner': return 'bg-green-500';
-      case 'Intermediate': return 'bg-yellow-500';
-      case 'Advanced': return 'bg-red-500';
-      default: return 'bg-blue-500';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: EventStatus) => {
     switch (status) {
-      case 'available': return 'border-green-500 bg-green-50';
-      case 'fully-booked': return 'border-yellow-500 bg-yellow-50';
-      case 'cancelled': return 'border-red-500 bg-red-50';
+      case 'planned': return 'border-gray-500 bg-gray-50';
+      case 'open': return 'border-green-500 bg-green-50';
+      case 'confirmed': return 'border-blue-500 bg-blue-50';
+      case 'canceled': return 'border-red-500 bg-red-50';
+      case 'successful': return 'border-purple-500 bg-purple-50';
       default: return 'border-blue-500 bg-blue-50';
     }
   };
@@ -164,21 +145,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events, onEventClick }) => 
                       className={`w-full text-left p-1 rounded text-xs transition-all hover:shadow-sm hover:scale-105 border ${getStatusColor(event.status)}`}
                     >
                       <div className="flex items-center space-x-1">
-                        <div className={`w-2 h-2 rounded-full ${getDifficultyColor(event.difficulty)} hidden sm:block`} />
-                        <span className="font-medium truncate">{event.title}</span>
+                        <span className="font-medium truncate">
+                          {t('common.language') === 'es' ? event.title_es : event.title_en}
+                        </span>
                       </div>
                       <div className="flex items-center space-x-2 mt-1 text-gray-600">
                         <Clock className="h-3 w-3 hidden sm:inline" />
-                        {/* Mobile: Show only hours */}
-                        <span className="sm:hidden">
-                          {new Date(event.start_time).toLocaleTimeString([], { hour: 'numeric' })}
-                        </span>
-                        {/* Desktop: Show hours and minutes */}
-                        <span className="hidden sm:inline">
-                          {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <span className="text-xs">{event.time}</span>
                         <Users className="h-3 w-3 hidden sm:inline" />
-                        <span className="hidden sm:inline">{event.seats_available}</span>
+                        <span className="hidden sm:inline">{event.available_seats}</span>
                       </div>
                     </button>
                   ))}
@@ -198,16 +173,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events, onEventClick }) => 
       <div className="px-6 pb-6">
         <div className="flex items-center justify-center space-x-6 text-sm">
           <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 rounded-full bg-gray-500" />
+            <span>{t('events.statuses.planned')}</span>
+          </div>
+          <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span>{t('events.difficulties.beginner')}</span>
+            <span>{t('events.statuses.open')}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span>{t('events.difficulties.intermediate')}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span>{t('events.difficulties.advanced')}</span>
+            <div className="w-3 h-3 rounded-full bg-blue-500" />
+            <span>{t('events.statuses.confirmed')}</span>
           </div>
         </div>
       </div>

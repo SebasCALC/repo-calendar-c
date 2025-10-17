@@ -52,15 +52,20 @@
     "loginToRegister": "Por favor inicia sesión o regístrate para reservar asientos para este evento",
     "seatsRequested": "Número de asientos (máx 4)",
     "registerForEvent": "Registrarse para este evento",
+    "location": "Ubicación",
+    "maxSeats": "Asientos Máximos",
+    "availableSeats": "Asientos Disponibles",
     "difficulties": {
       "beginner": "Principiante",
       "intermediate": "Intermedio",
       "advanced": "Avanzado"
     },
     "statuses": {
-      "available": "Disponible",
-      "fullyBooked": "Completamente Reservado",
-      "cancelled": "Cancelado"
+      "planned": "Planificado",
+      "open": "Abierto para Registro",
+      "confirmed": "Confirmado",
+      "canceled": "Cancelado",
+      "successful": "Completado Exitosamente"
     }
   },
   "auth": {

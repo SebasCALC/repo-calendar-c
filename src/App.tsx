@@ -6,7 +6,7 @@ import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
 import AdminPanel from './components/AdminPanel';
 import UserProfileModal from './components/UserProfileModal';
-import { Event, UserProfile, EventRegistration } from './types';
+import { Event, UserProfile, EventRegistration, AppRole } from './types';
 import { supabase, signOut, getCurrentUser, getUserProfile } from './lib/supabase';
 import { useTranslation } from './i18n/i18n';
 
@@ -259,13 +259,13 @@ function App() {
                       {currentUser.full_name}
                     </button>
                   </div>
-                  {currentUser.is_admin && (
+                  {(currentUser.role === 'admin' || currentUser.role === 'provider') && (
                     <button
                       onClick={() => setShowAdminPanel(true)}
                       className="flex items-center space-x-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       <Settings className="h-4 w-4" />
-                      <span>{t('header.adminPanel')}</span>
+                      <span>{currentUser.role === 'admin' ? t('header.adminPanel') : 'Provider Panel'}</span>
                     </button>
                   )}
                   <button
@@ -336,9 +336,10 @@ function App() {
         />
       )}
 
-      {showAdminPanel && currentUser?.is_admin && (
+      {showAdminPanel && (currentUser?.role === 'admin' || currentUser?.role === 'provider') && (
         <AdminPanel
           events={events}
+          currentUser={currentUser}
           onClose={() => setShowAdminPanel(false)}
           onEventsUpdate={loadEvents}
         />

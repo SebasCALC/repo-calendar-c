@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Clock, Users, Award, Calendar, CreditCard as Edit3 } from 'lucide-react';
-import { Event, UserProfile, EventRegistration } from '../types';
+import { X, Clock, Users, Award, Calendar, CreditCard as Edit3, MapPin } from 'lucide-react';
+import { Event, UserProfile, EventRegistration, EventStatus } from '../types';
 import { useTranslation } from '../i18n/i18n';
 
 interface EventModalProps {
@@ -27,18 +27,17 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const isUserRegistered = userRegistrations.some(reg => reg.event_id === event.id);
 
+  const canRegister = currentUser && 
+    (event.status === 'open' || event.status === 'confirmed') && 
+    event.available_seats > 0 && 
+    !isUserRegistered;
+
+  const canEdit = currentUser && 
+    (currentUser.role === 'admin' || 
+     (currentUser.role === 'provider' && event.provider_id === currentUser.id));
+
   const handleBooking = () => {
-    if (!currentUser) {
-      alert('Please log in to register for events');
-      return;
-    }
-
-    if (isUserRegistered) {
-      alert('You are already registered for this event');
-      return;
-    }
-
-    if (seatsRequested > event.seats_available) {
+    if (seatsRequested > event.available_seats) {
       alert('Not enough seats available');
       return;
     }
@@ -51,7 +50,7 @@ const EventModal: React.FC<EventModalProps> = ({
     onBook(event.id, seatsRequested);
   };
 
-  const handleStatusChange = (newStatus: 'available' | 'fully-booked' | 'cancelled') => {
+  const handleStatusChange = (newStatus: EventStatus) => {
     onUpdate({
       ...event,
       status: newStatus
@@ -59,30 +58,21 @@ const EventModal: React.FC<EventModalProps> = ({
   };
 
   const handleEventUpdate = () => {
-    // Convert datetime-local format to ISO string
     const updatedEvent = {
       ...editedEvent,
-      start_time: new Date(editedEvent.start_time).toISOString(),
-      end_time: new Date(editedEvent.end_time).toISOString()
+      updated_at: new Date().toISOString()
     };
     onUpdate(updatedEvent);
     setIsEditing(false);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner': return 'bg-green-100 text-green-800';
-      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'Advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-blue-100 text-blue-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: EventStatus) => {
     switch (status) {
-      case 'available': return 'bg-green-100 text-green-800';
-      case 'fully-booked': return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'planned': return 'bg-gray-100 text-gray-800';
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'canceled': return 'bg-red-100 text-red-800';
+      case 'successful': return 'bg-purple-100 text-purple-800';
       default: return 'bg-blue-100 text-blue-800';
     }
   };
@@ -92,7 +82,7 @@ const EventModal: React.FC<EventModalProps> = ({
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-xl">
-          <h2 className="text-xl font-semibold">{event.title}</h2>
+          <h2 className="text-xl font-semibold">{t('common.language') === 'es' ? event.title_es : event.title_en}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -107,76 +97,101 @@ const EventModal: React.FC<EventModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('eventModal.title')}</label>
-                <input
-                  type="text"
-                  value={editedEvent.title}
-                  onChange={(e) => setEditedEvent({ ...editedEvent, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Spanish</label>
+                    <input
+                      type="text"
+                      value={editedEvent.title_es}
+                      onChange={(e) => setEditedEvent({ ...editedEvent, title_es: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <input
+                      type="text"
+                      value={editedEvent.title_en}
+                      onChange={(e) => setEditedEvent({ ...editedEvent, title_en: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.description')}</label>
-                <textarea
-                  value={editedEvent.description}
-                  onChange={(e) => setEditedEvent({ ...editedEvent, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('eventModal.startTime')}</label>
-                  <input
-                    type="datetime-local"
-                    value={new Date(editedEvent.start_time).toISOString().slice(0, 16)}
-                    onChange={(e) => setEditedEvent({ ...editedEvent, start_time: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('eventModal.endTime')}</label>
-                  <input
-                    type="datetime-local"
-                    value={new Date(editedEvent.end_time).toISOString().slice(0, 16)}
-                    onChange={(e) => setEditedEvent({ ...editedEvent, end_time: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Spanish</label>
+                    <textarea
+                      value={editedEvent.description_es}
+                      onChange={(e) => setEditedEvent({ ...editedEvent, description_es: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <textarea
+                      value={editedEvent.description_en}
+                      onChange={(e) => setEditedEvent({ ...editedEvent, description_en: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.difficulty')}</label>
-                  <select
-                    value={editedEvent.difficulty}
-                    onChange={(e) => setEditedEvent({ ...editedEvent, difficulty: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Beginner">{t('events.difficulties.beginner')}</option>
-                    <option value="Intermediate">{t('events.difficulties.intermediate')}</option>
-                    <option value="Advanced">{t('events.difficulties.advanced')}</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('eventModal.totalSeats')}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.date')}</label>
                   <input
-                    type="number"
-                    value={editedEvent.total_seats}
-                    onChange={(e) => setEditedEvent({ ...editedEvent, total_seats: parseInt(e.target.value) })}
+                    type="date"
+                    value={editedEvent.date}
+                    onChange={(e) => setEditedEvent({ ...editedEvent, date: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('eventModal.availableSeats')}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.time')}</label>
+                  <input
+                    type="time"
+                    value={editedEvent.time}
+                    onChange={(e) => setEditedEvent({ ...editedEvent, time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.location')}</label>
+                  <input
+                    type="text"
+                    value={editedEvent.location}
+                    onChange={(e) => setEditedEvent({ ...editedEvent, location: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.maxSeats')}</label>
                   <input
                     type="number"
-                    value={editedEvent.seats_available}
-                    onChange={(e) => setEditedEvent({ ...editedEvent, seats_available: parseInt(e.target.value) })}
+                    value={editedEvent.max_seats}
+                    onChange={(e) => setEditedEvent({ ...editedEvent, max_seats: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.availableSeats')}</label>
+                  <input
+                    type="number"
+                    value={editedEvent.available_seats}
+                    onChange={(e) => setEditedEvent({ ...editedEvent, available_seats: parseInt(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -202,17 +217,19 @@ const EventModal: React.FC<EventModalProps> = ({
             <div className="space-y-6">
               {/* Event Details */}
               <div>
-                <p className="text-gray-600 leading-relaxed">{event.description}</p>
+                <p className="text-gray-600 leading-relaxed">
+                  {t('common.language') === 'es' ? event.description_es : event.description_en}
+                </p>
               </div>
 
               {/* Event Info Grid */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="text-sm text-gray-500">{t('events.date')}</p>
-                      <p className="font-medium">{new Date(event.start_time).toLocaleDateString()}</p>
+                      <p className="font-medium">{new Date(event.date).toLocaleDateString()}</p>
                     </div>
                   </div>
 
@@ -220,10 +237,15 @@ const EventModal: React.FC<EventModalProps> = ({
                     <Clock className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="text-sm text-gray-500">{t('events.time')}</p>
-                      <p className="font-medium">
-                        {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(event.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                      <p className="text-sm text-gray-500">{event.duration} {t('events.minutes')}</p>
+                      <p className="font-medium">{event.time}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-500">{t('events.location')}</p>
+                      <p className="font-medium">{event.location}</p>
                     </div>
                   </div>
                 </div>
@@ -233,17 +255,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     <Users className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="text-sm text-gray-500">{t('events.seatsAvailable')}</p>
-                      <p className="font-medium">{event.seats_available} / {event.total_seats}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <Award className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm text-gray-500">{t('events.difficulty')}</p>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(event.difficulty)}`}>
-                        {t(`events.difficulties.${event.difficulty.toLowerCase()}`)}
-                      </span>
+                      <p className="font-medium">{event.available_seats} / {event.max_seats}</p>
                     </div>
                   </div>
                 </div>
@@ -253,7 +265,7 @@ const EventModal: React.FC<EventModalProps> = ({
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500">{t('events.status')}:</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(event.status)}`}>
-                  {t(`events.statuses.${event.status.replace('-', '')}`)}
+                  {t(`events.statuses.${event.status}`)}
                 </span>
               </div>
 
@@ -265,7 +277,7 @@ const EventModal: React.FC<EventModalProps> = ({
               )}
 
               {/* Registration Section */}
-              {currentUser && event.status === 'available' && event.seats_available > 0 && !isUserRegistered && (
+              {canRegister && (
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="font-medium text-blue-900 mb-3">{t('events.registerForEvent')}</h3>
                   <div className="flex items-center space-x-4">
@@ -276,7 +288,7 @@ const EventModal: React.FC<EventModalProps> = ({
                         onChange={(e) => setSeatsRequested(parseInt(e.target.value))}
                         className="px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       >
-                        {[1, 2, 3, 4].filter(n => n <= event.seats_available).map(n => (
+                        {[1, 2, 3, 4].filter(n => n <= event.available_seats).map(n => (
                           <option key={n} value={n}>{n}</option>
                         ))}
                       </select>
@@ -292,7 +304,7 @@ const EventModal: React.FC<EventModalProps> = ({
               )}
 
               {/* Admin Controls */}
-              {currentUser?.is_admin && (
+              {canEdit && (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-medium text-gray-900 mb-3">{t('eventModal.adminControls')}</h3>
                   <div className="flex flex-wrap gap-2">
@@ -304,33 +316,50 @@ const EventModal: React.FC<EventModalProps> = ({
                       <span>{t('eventModal.editEvent')}</span>
                     </button>
                     
-                    <button
-                      onClick={() => handleStatusChange('available')}
-                      className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      {t('eventModal.markAvailable')}
-                    </button>
-                    
-                    <button
-                      onClick={() => handleStatusChange('fully-booked')}
-                      className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
-                    >
-                      {t('eventModal.markFull')}
-                    </button>
-                    
-                    <button
-                      onClick={() => handleStatusChange('cancelled')}
-                      className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      {t('eventModal.cancelEvent')}
-                    </button>
+                    {currentUser?.role === 'admin' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusChange('open')}
+                          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Mark Open
+                        </button>
+                        
+                        <button
+                          onClick={() => handleStatusChange('confirmed')}
+                          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Mark Confirmed
+                        </button>
+                        
+                        <button
+                          onClick={() => handleStatusChange('canceled')}
+                          className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Cancel Event
+                        </button>
+                        
+                        <button
+                          onClick={() => handleStatusChange('successful')}
+                          className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          Mark Successful
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
 
-              {!currentUser && event.status === 'available' && (
+              {!currentUser && (event.status === 'open' || event.status === 'confirmed') && (
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <p className="text-yellow-800">{t('events.loginToRegister')}</p>
+                </div>
+              )}
+
+              {currentUser && (event.status === 'planned') && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-800">This event is still being planned. Registration will open soon.</p>
                 </div>
               )}
             </div>
