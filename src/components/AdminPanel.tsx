@@ -61,7 +61,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const { error } = await supabase
         .from('events')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', eventId);
 
       if (error) throw error;
@@ -72,10 +75,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
+  const handleViewRegistrations = (event: Event) => {
     setSelectedEvent(event);
     setShowRegistrationsModal(true);
   };
@@ -123,8 +123,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const filteredEvents = filterEvents(events);
   const totalEvents = events.length;
-  const filteredAvailableEvents = filteredEvents.filter(e => e.status === 'open' || e.status === 'confirmed').length;
-  const totalUsers = users.filter(u => u.role === 'user').length;
+  const filteredAvailableEvents = filteredEvents.filter(e => e.status === 'available').length;
+  const availableEvents = events.filter(e => e.status === 'available').length;
+  const totalUsers = users.filter(u => !u.is_admin).length;
   const totalRegistrations = registrations.length;
 
   // Generate year options (current year ± 5 years)
@@ -154,9 +155,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-xl">
-          <h2 className="text-xl font-semibold">
-            {currentUser.role === 'admin' ? t('admin.adminPanel') : 'Provider Panel'}
-          </h2>
+          <h2 className="text-xl font-semibold">{t('admin.adminPanel')}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -346,59 +345,48 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <tr key={event.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 px-4 py-2">
                             <div>
-                              <p className="font-medium">
-                                {t('common.language') === 'es' ? event.title_es : event.title_en}
-                              </p>
-                              <p className="text-sm text-gray-600">{event.location}</p>
+                              <p className="font-medium">{event.title}</p>
+                              <p className="text-sm text-gray-600">{event.difficulty}</p>
                             </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
                             <div>
-                              <p className="text-sm">{new Date(event.date).toLocaleDateString()}</p>
-                              <p className="text-xs text-gray-600">{event.time}</p>
+                              <p className="text-sm">{new Date(event.start_time).toLocaleDateString()}</p>
+                              <p className="text-xs text-gray-600">
+                                {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
                             </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
-                            <p>{event.available_seats} / {event.max_seats}</p>
+                            <p>{event.seats_available} / {event.total_seats}</p>
                             <p className="text-xs text-gray-600">Booked: {totalSeatsBooked}</p>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
-                              event.status === 'open' || event.status === 'confirmed'
+                              event.status === 'available' 
                                 ? 'bg-green-100 text-green-800'
-                                : event.status === 'planned'
-                                ? 'bg-gray-100 text-gray-800'
-                                : event.status === 'canceled'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-purple-100 text-purple-800'
+                                : event.status === 'fully-booked'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
                             }`}>
-                              {t(`events.statuses.${event.status}`)}
+                              {event.status.replace('-', ' ')}
                             </span>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
                             {eventRegistrations.length} users
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
-                            {(currentUser.role === 'admin' || event.provider_id === currentUser.id) && (
-                              <div className="flex space-x-1">
-                                <select
-                                  value={event.status}
-                                  onChange={(e) => handleStatusChange(event.id, e.target.value as EventStatus)}
-                                  className="text-xs px-2 py-1 border border-gray-300 rounded"
-                                  disabled={currentUser.role === 'provider' && event.provider_id !== currentUser.id}
-                                >
-                                  <option value="planned">Planned</option>
-                                  {currentUser.role === 'admin' && (
-                                    <>
-                                      <option value="open">Open</option>
-                                      <option value="confirmed">Confirmed</option>
-                                      <option value="canceled">Canceled</option>
-                                      <option value="successful">Successful</option>
-                                    </>
-                                  )}
-                                </select>
-                              </div>
-                            )}
+                            <div className="flex space-x-1">
+                              <select
+                                value={event.status}
+                                onChange={(e) => handleStatusChange(event.id, e.target.value as any)}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded"
+                              >
+                                <option value="available">Available</option>
+                                <option value="fully-booked">Full</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
                             <button
@@ -433,30 +421,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {users.filter(user => user.role === 'user').map(user => {
+                    {users.filter(user => !user.is_admin).map(user => {
                       const userRegs = getUserRegistrations(user.id);
                       return (
                         <tr key={user.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 px-4 py-2">
                             <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-sm text-gray-600">{user.email}</p>
+                              <p className="font-medium">{user.full_name}</p>
+                              <p className="text-sm text-gray-600">@{user.username}</p>
+                              <p className="text-xs text-gray-500">Age: {user.age}</p>
+                              <p className="text-xs text-gray-500">{user.city_town_name}, {user.country_of_residence}</p>
                             </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
                             <p className="text-sm text-gray-600">{user.email}</p>
                           </td>
-                          <td className="border border-gray-300 px-4 py-2">-</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <div>
+                              <p className="text-sm text-gray-600">{user.phone}</p>
+                            </div>
+                          </td>
                           <td className="border border-gray-300 px-4 py-2">
                             <div className="space-y-1">
                               {userRegs.map((reg, index) => {
                                 const event = events.find(e => e.id === reg.event_id);
                                 return (
                                   <div key={index} className="text-xs">
-                                    <p className="font-medium">
-                                      {event ? (t('common.language') === 'es' ? event.title_es : event.title_en) : 'Unknown Event'}
-                                    </p>
-                                    <p className="text-gray-600">{reg.seats_booked} seats</p>
+                                    <p className="font-medium">{event?.title || 'Unknown Event'}</p>
+                                    <p className="text-gray-600">{reg.seats_requested} seats</p>
                                   </div>
                                 );
                               })}
@@ -466,7 +458,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-2">
-                            {userRegs.reduce((sum, reg) => sum + reg.seats_booked, 0)} seats
+                            {userRegs.reduce((sum, reg) => sum + reg.seats_requested, 0)} seats
                           </td>
                         </tr>
                       );
@@ -482,7 +474,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* Add Event Modal */}
       {showAddEventModal && (
         <AddEventModal
-          currentUser={currentUser}
           onClose={() => setShowAddEventModal(false)}
           onEventAdded={onEventsUpdate}
         />
